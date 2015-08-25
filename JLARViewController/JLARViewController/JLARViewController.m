@@ -6,14 +6,15 @@
 //  Copyright (c) 2015 jlrodv. All rights reserved.
 //
 
+#define FOV 60
+
 #import "JLARViewController.h"
 #import <AVFoundation/AVFoundation.h>
 #import <CoreLocation/CoreLocation.h>
 
-@interface JLARViewController ()
+@interface JLARViewController ()<CLLocationManagerDelegate>
 @property (nonatomic, strong) AVCaptureSession *session;
-@property (nonatomic, strong) AVCaptureDeviceInput *inputDevice;
-
+@property (nonatomic, strong) CLLocationManager *locationManager;
 @end
 
 @implementation JLARViewController
@@ -46,6 +47,16 @@
     }
     
    
+    if([CLLocationManager authorizationStatus]==kCLAuthorizationStatusAuthorizedWhenInUse){
+        [self startLocationManager];
+    
+    }
+    else{
+        self.locationManager = [[CLLocationManager alloc] init];
+        self.locationManager.delegate = self;
+        [self.locationManager requestWhenInUseAuthorization];
+    }
+    
     // Do any additional setup after loading the view.
 }
 
@@ -60,15 +71,13 @@
         
         AVCaptureDeviceInput *device = [[AVCaptureDeviceInput alloc] initWithDevice:[JLARViewController deviceWithMediaType:AVMediaTypeVideo preferringPosition:AVCaptureDevicePositionBack] error:nil];
         
-        self.inputDevice = device;
-        
         [self.session beginConfiguration];
         
         for(AVCaptureDeviceInput *device in self.session.inputs){
             [self.session removeInput:device];
         }
         
-        [self.session addInput:self.inputDevice];
+        [self.session addInput:device];
         
         [self.session commitConfiguration];
         
@@ -84,6 +93,17 @@
     
     });
     
+}
+
+-(void)startLocationManager{
+    if(!self.locationManager){
+        self.locationManager = [[CLLocationManager alloc] init];
+        self.locationManager.delegate = self;
+    }
+    
+    [self.locationManager startMonitoringSignificantLocationChanges];
+    [self.locationManager startUpdatingHeading];
+    [self.locationManager startUpdatingHeading];
 }
 
 - (void)didReceiveMemoryWarning {
@@ -107,6 +127,19 @@
     }
     
     return captureDevice;
+}
+
+#pragma mark - CLLocationManagerDelegate
+-(void)locationManager:(CLLocationManager *)manager didChangeAuthorizationStatus:(CLAuthorizationStatus)status{
+
+    if(status==kCLAuthorizationStatusAuthorizedWhenInUse){
+        [self startLocationManager];
+    }
+}
+
+-(void)locationManager:(CLLocationManager *)manager didUpdateHeading:(CLHeading *)newHeading{
+    NSLog(@"%f %f", newHeading.magneticHeading, newHeading.trueHeading);
+
 }
 
 /*
